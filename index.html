@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Lunar Calendar</title>
 
 <style>
@@ -9,14 +10,18 @@
     --bg: #f4f6f9;
     --card: #ffffff;
     --primary: #2563eb;
+    --primary-soft: #eef2ff;
     --text: #111827;
     --muted: #6b7280;
     --border: #e5e7eb;
   }
 
+  * {
+    box-sizing: border-box;
+  }
+
   body {
     margin: 0;
-    padding: 40px;
     font-family: system-ui, -apple-system, "PingFang SC",
                  "Microsoft YaHei", "Heiti TC", sans-serif;
     background: var(--bg);
@@ -24,42 +29,75 @@
   }
 
   .app {
-    max-width: 720px;
+    max-width: 860px;
     margin: auto;
+    padding: clamp(16px, 4vw, 40px);
     display: grid;
     gap: 20px;
   }
 
   .card {
     background: var(--card);
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 10px 32px rgba(0,0,0,.08);
+    border-radius: 18px;
+    padding: clamp(16px, 3vw, 28px);
+    box-shadow: 0 12px 36px rgba(0,0,0,.08);
   }
+
+  /* ===== Header ===== */
 
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
   }
 
   h1 {
     margin: 0;
-    font-size: 22px;
+    font-size: clamp(18px, 3vw, 22px);
   }
 
-  select, input, button {
-    font-size: 14px;
+  select {
     padding: 8px 12px;
-    border-radius: 8px;
+    font-size: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  /* ===== Controls ===== */
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+  }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  input[type="date"],
+  button {
+    height: 44px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+
+  input[type="date"] {
+    padding: 0 12px;
     border: 1px solid var(--border);
   }
 
   button {
-    background: var(--primary);
-    color: #fff;
+    padding: 0 16px;
     border: none;
     cursor: pointer;
+    background: var(--primary);
+    color: white;
   }
 
   button.secondary {
@@ -67,33 +105,33 @@
   }
 
   button.ghost {
-    background: #eef2ff;
+    background: var(--primary-soft);
     color: #1e3a8a;
   }
 
-  .row {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
+  /* ===== Result ===== */
 
   .result-main {
-    font-size: 26px;
+    font-size: clamp(20px, 4vw, 26px);
     font-weight: 600;
     text-align: center;
+    line-height: 1.4;
   }
 
   .result-sub {
-    margin-top: 6px;
     text-align: center;
+    margin-top: 6px;
     color: var(--muted);
     font-size: 14px;
   }
 
+  /* ===== Meta Info ===== */
+
   .meta {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px 24px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px 24px;
+    margin-top: 12px;
     font-size: 14px;
   }
 
@@ -107,6 +145,14 @@
   .label {
     color: var(--muted);
   }
+
+  /* ===== Mobile tweaks ===== */
+
+  @media (max-width: 480px) {
+    .controls {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 </head>
 
@@ -114,7 +160,7 @@
 
 <div class="app">
 
-  <!-- Header Card -->
+  <!-- Header -->
   <div class="card header">
     <h1 id="title"></h1>
     <select id="lang" onchange="refresh()">
@@ -123,26 +169,27 @@
     </select>
   </div>
 
-  <!-- Query Card -->
+  <!-- Controls -->
   <div class="card">
-    <div class="row">
+    <div class="controls">
       <input type="date" id="dateInput">
       <button onclick="query()" id="btnQuery"></button>
-      <button class="secondary" onclick="today()" id="btnToday"></button>
     </div>
-    <div class="row" style="margin-top:12px">
+
+    <div class="actions">
+      <button class="secondary" onclick="today()" id="btnToday"></button>
       <button class="ghost" onclick="sameSolar()" id="btnSolar"></button>
       <button class="ghost" onclick="sameLunar()" id="btnLunar"></button>
     </div>
   </div>
 
-  <!-- Result Card -->
+  <!-- Result -->
   <div class="card" id="resultCard" style="display:none">
     <div class="result-main" id="display"></div>
     <div class="result-sub" id="subtitle"></div>
   </div>
 
-  <!-- Meta Card -->
+  <!-- Meta -->
   <div class="card" id="metaCard" style="display:none">
     <div class="meta">
       <div><span class="label" id="lblSolar"></span><span id="solar"></span></div>
@@ -158,10 +205,6 @@
 <script src="./lunar-service.js"></script>
 
 <script>
-/* ===============================
-   页面 i18n 文案
-   =============================== */
-
 const TEXT = {
   "zh-CN": {
     title: "农历查询工具",
@@ -216,11 +259,9 @@ function applyText() {
 function render(info) {
   resultCard.style.display = "";
   metaCard.style.display = "";
-
   display.textContent = info.display;
   solar.textContent = info.solar.text;
-  numeric.textContent =
-    `${info.lunar.year}-${info.lunar.month}-${info.lunar.day}`;
+  numeric.textContent = `${info.lunar.year}-${info.lunar.month}-${info.lunar.day}`;
   leap.textContent = info.lunar.isLeap ? TEXT[lang()].yes : TEXT[lang()].no;
   days.textContent = info.lunar.monthDays + " 天";
 }
