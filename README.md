@@ -1,204 +1,258 @@
-# 🌙 Astronomical Chinese Lunar Calendar
-## 天文农历计算（纯 JavaScript · 无表 · 无依赖）
+# 🌙 Astronomical Chinese Lunar Calendar (JavaScript)
 
-> 📌 **在线查询（GitHub Pages）**  
+> 📌 **Online Demo (GitHub Pages)**  
 > 👉 [Lunar Calendar](https://ymhomer.github.io/lunarCalendar/)
 
 ---
 
-## 🇨🇳 简体中文
+##（API 使用导向）
 
-### 一、项目简介
-
-本项目提供一套**基于真实天文算法的中国农历实现**，完全使用原生 JavaScript 编写，具备以下特点：
-
-- 不使用任何农历查表（无硬编码数据）
-- 不依赖第三方库
-- 基于：
-  - 真朔（天文新月）
-  - 太阳黄经与中气（每 30°）
-  - 冬至月为农历十一月
-  - “无中气置闰月”规则
-- 严格区分：
-  - **农历年月日（以正月初一为岁首）**
-  - **干支年 / 生肖年（以立春为年界）**
-
-本仓库同时面向两类人群：
-
-- **普通用户**：直接使用 GitHub Pages 页面进行农历查询  
-- **开发者**：通过 JavaScript API 集成到自己的项目中
+本 README **以“如何调用”为第一优先**。  
+如果你只关心：**怎么传参、返回什么、怎么用**，只需要看下面内容即可。
 
 ---
 
-### 二、整体结构与设计理念
+## 一、你会用到哪一个 JS？
 
-```
-.
-├─ lunar-astronomy.js   # 天文计算引擎（底层、精确）
-├─ lunar-service.js     # 农历业务服务层（推荐使用）
-├─ index.html           # GitHub Pages 页面（普通用户入口）
-└─ README.md
+| 文件 | 你是否应该直接用 |
+|---|---|
+| `lunar-astronomy.js` | ❌ 不推荐（底层算法） |
+| `lunar-service.js` | ✅ **是（唯一推荐）** |
+| `index.html` | ✅ 普通用户网页入口 |
+
+👉 **结论：**
+- UI / 业务代码 **只调用 `lunar-service.js`**
+- `lunar-astronomy.js` 只作为内部依赖
+
+---
+
+## 二、最小可用示例（30 秒上手）
+
+### 1️⃣ 引入顺序（必须）
+
+```html
+<script src="lunar-astronomy.js"></script>
+<script src="lunar-service.js"></script>
 ```
 
 ---
 
-### 三、lunar-astronomy.js（天文引擎）
-
-**文件定位**  
-底层天文计算引擎，只负责“算得准”，不负责 UI 或文字表达。
-
-**核心能力**
-
-- 真朔（新月）时间计算
-- 太阳视黄经计算
-- 中气（30°）判定
-- 冬至定位（270°）
-- 农历月序与闰月推导
-
-**主要 API**
+### 2️⃣ 一行代码获取农历
 
 ```js
-LunarAstronomy.solarToLunar(date: Date): {
-  lYear: number,
-  lMonth: number,
-  lDay: number,
-  isLeap: boolean,
-  monthDays: number
-}
+const result = LunarService.fromDate(new Date());
+console.log(result.display);
 ```
 
-**注意事项**
+输出示例：
 
-- 不要直接用 lYear 计算干支或生肖
-- 不建议在 UI 层直接使用本文件
-- 推荐仅作为 lunar-service.js 的底层依赖
+```
+乙巳年（蛇） 冬月（十一月） 初五
+```
 
 ---
 
-### 四、lunar-service.js（农历业务层 · 推荐）
+## 三、核心 API 一览（重点）
 
-**文件定位**  
-在天文引擎之上，提供“不会用错”的农历服务接口。
+### ✅ LunarService.fromDate
 
-**设计目标**
+#### 方法签名
 
-- 防止混用农历年与干支年
-- 集中处理立春、干支、生肖规则
-- 提供可读、稳定的返回结构
-- 强制依赖 lunar-astronomy.js（防止误用）
-
-**依赖保护**
-
-```js
-if (!window.LunarAstronomy) {
-  throw new Error("Dependency missing");
-}
-```
-
-**核心 API：fromDate**
-
-```js
+```ts
 LunarService.fromDate(
   date: Date,
-  options?: { lang?: "zh-CN" | "zh-TW" }
-): {
-  solar: { text: string },
+  options?: {
+    lang?: "zh-CN" | "zh-TW"
+  }
+): LunarResult
+```
+
+---
+
+### 输入参数说明
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `date` | `Date` | ✅ | **公历日期（JavaScript Date 对象）** |
+| `options.lang` | `string` | ❌ | `"zh-CN"` 或 `"zh-TW"`，默认 `"zh-CN"` |
+
+⚠️ **必须是 `Date` 对象，不要传字符串**
+
+---
+
+### 返回值：`LunarResult`（完整结构）
+
+```ts
+{
+  solar: {
+    date: Date,        // 原始公历 Date
+    text: string       // YYYY-MM-DD
+  },
+
   lunar: {
-    year: number,
-    month: number,
-    day: number,
-    isLeap: boolean,
-    monthDays: number,
-    monthName: string,
-    dayName: string
+    year: number,      // 农历年（正月初一为界）
+    month: number,     // 农历月 1–12
+    day: number,       // 农历日 1–30
+    isLeap: boolean,   // 是否闰月
+    monthDays: number,// 29 或 30
+    monthName: string,// 冬月（十一月）
+    dayName: string   // 初五
   },
+
   ganzhi: {
-    year: number,
-    ganzhi: string,
-    animal: string
+    year: number,     // 干支所属年（立春为界）
+    ganzhi: string,   // 乙巳
+    animal: string    // 蛇
   },
-  display: string
+
+  display: string     // 已组合好的可直接展示文本
 }
 ```
 
-**使用示例**
+👉 **UI 直接用 `display` 即可**
+
+---
+
+## 四、常用调用示例（照抄可用）
+
+### 1️⃣ 指定语言
 
 ```js
-const info = LunarService.fromDate(new Date(), { lang: "zh-CN" });
-console.log(info.display);
+LunarService.fromDate(new Date(), { lang: "zh-CN" });
+LunarService.fromDate(new Date(), { lang: "zh-TW" });
 ```
 
-**业务接口**
+---
+
+### 2️⃣ 获取单独字段
 
 ```js
-LunarService.sameSolarDateThisYear(date, options);
-LunarService.sameLunarDateThisYear(date, options);
+const r = LunarService.fromDate(new Date());
+
+console.log(r.lunar.monthName); // 冬月（十一月）
+console.log(r.lunar.dayName);   // 初五
+console.log(r.ganzhi.animal);   // 蛇
 ```
 
 ---
 
-### 五、GitHub Pages 页面（index.html）
+### 3️⃣ 今年同日（公历）
 
-- 面向普通用户的农历查询工具
-- 支持任意日期查询
-- 显示干支年、生肖、农历月日
-- 支持简体 / 繁体切换
-- 卡片化 UI，适合桌面与移动端
+```js
+LunarService.sameSolarDateThisYear(new Date("2024-10-24"));
+```
 
----
-
-### 六、常见误用说明（重要）
-
-- 不要把农历年当作生肖年
-- 干支年必须以立春为界
-- 不要单独使用 lunar-service.js
+含义：
+> 用 **今年的公历同一天** 再算一次农历
 
 ---
 
-### 七、License
+### 4️⃣ 今年同日（农历）
+
+```js
+LunarService.sameLunarDateThisYear(new Date("2024-10-24"));
+```
+
+含义：
+> 取该日期的农历月日，换算为 **今年对应的农历日期**
+
+---
+
+## 五、最重要的三条规则（必看）
+
+1️⃣ **不要自己算生肖 / 干支**
+> 已内置，且以立春为界
+
+2️⃣ **不要把农历年当成生肖年**
+> `lunar.year ≠ ganzhi.year`
+
+3️⃣ **不要单独使用 `lunar-service.js`**
+> 必须先加载 `lunar-astronomy.js`，否则直接报错
+
+---
+
+## 六、什么时候你才需要 lunar-astronomy.js？
+
+**只有在以下情况：**
+
+- 你要研究天文算法
+- 你要自己实现另一套历法
+- 你知道什么是“真朔 / 中气”
+
+否则：**你不需要它**。
+
+---
+
+## 七、GitHub Pages 页面（index.html）
+
+- 已经封装好所有调用
+- 适合普通用户直接查询
+- 你可以直接 fork 使用
+
+---
+
+## 八、License
 
 MIT License
 
 ---
 
-## 🇬🇧 English
+## 🇬🇧 English (API-first)
 
-### Overview
-
-This project provides a **pure JavaScript implementation of the Chinese Lunar Calendar** based on real astronomical calculations.
-
-- True new moon (conjunction)
-- Solar longitude and major solar terms
-- Leap month rules
-- No lookup tables
-- No external dependencies
+This README is **API-first**.  
+If you want to know **how to call, what to pass, and what you get**, read this section.
 
 ---
 
-### Files
+## Quick Start
 
-- **lunar-astronomy.js** – Astronomical engine (low-level)
-- **lunar-service.js** – Business/service layer (recommended)
-- **index.html** – GitHub Pages UI
-
----
-
-### Usage
-
-```js
-LunarService.fromDate(new Date(), { lang: "zh-CN" }).display;
+```html
+<script src="lunar-astronomy.js"></script>
+<script src="lunar-service.js"></script>
 ```
 
-⚠️ Do not use `lunar-service.js` without `lunar-astronomy.js`.
+```js
+LunarService.fromDate(new Date()).display;
+```
 
 ---
 
-### Live Demo
+## Core API
+
+### LunarService.fromDate
+
+```ts
+LunarService.fromDate(
+  date: Date,
+  options?: {
+    lang?: "zh-CN" | "zh-TW"
+  }
+): LunarResult
+```
+
+### Input
+
+| Name | Type | Required |
+|---|---|---|
+| date | Date | Yes |
+| options.lang | string | No |
+
+### Output (LunarResult)
+
+- `display` → ready-to-use string
+- `lunar` → lunar values
+- `ganzhi` → Ganzhi & zodiac
+
+👉 **For UI usage, just use `display`.**
+
+---
+
+## Live Demo
 
 👉 [Lunar Calendar](https://ymhomer.github.io/lunarCalendar/)
 
 ---
 
-### License
+## License
 
 MIT
