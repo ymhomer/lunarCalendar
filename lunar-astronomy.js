@@ -49,27 +49,49 @@
   /* ===============================
      3. ΔT (TT − UT)  强化版
      =============================== */
+  
+	function deltaT(year) {
+	  const y = year;
+	  const Tcent = (y - 2000) / 100;
 
-  function deltaT(year) {
-    const y = year;
-    const t = (y - 2000) / 100;
-    if (y < 1700) return 120 + 80 * t * t;
-    if (y < 1800) return 8.83 + 0.1603 * (y - 1700);
-    if (y < 1860) return 13.72 - 0.332447 * (y - 1800);
-    if (y < 1900) return 7.62 + 0.5737 * (y - 1860);
-    if (y < 1920) return -2.79 + 1.494119 * (y - 1900);
-    if (y < 1941) return 21.20 + 0.84493 * (y - 1920);
-    if (y < 1961) return 29.07 + 0.407 * (y - 1950);
-    if (y < 1986) return 45.45 + 1.067 * (y - 1975);
-    if (y < 2005) return 63.86 + 0.3345 * (y - 2000);
-    if (y < 2050) return 62.92 + 0.32217 * (y - 2000);
-    return 64.7 + 0.4 * (y - 2000);
-  }
+	  if (y < 1700) return 120 + 80 * Tcent * Tcent;
+	  if (y < 1800) return 8.83 + 0.1603 * (y - 1700);
+	  if (y < 1860) return 13.72 - 0.332447 * (y - 1800);
+	  if (y < 1900) return 7.62 + 0.5737 * (y - 1860);
+	  if (y < 1920) return -2.79 + 1.494119 * (y - 1900);
+	  if (y < 1941) return 21.20 + 0.84493 * (y - 1920);
+	  if (y < 1961) return 29.07 + 0.407 * (y - 1950);
+	  if (y < 1986) return 45.45 + 1.067 * (y - 1975);
 
-  function toTT(jdUT) {
-    const y = dateFromJd(jdUT).getUTCFullYear();
-    return jdUT + deltaT(y) / 86400;
-  }
+	  // NASA 1986–2005
+	  if (y < 2005) {
+		const t = y - 2000;
+		return 63.86
+		  + 0.3345 * t
+		  - 0.060374 * t * t
+		  + 0.0017275 * t * t * t
+		  + 0.000651814 * t * t * t * t
+		  + 0.00002373599 * t * t * t * t * t;
+	  }
+
+	  // NASA 2005–2050（二次式）
+	  const t = y - 2000;
+	  return 62.92 + 0.32217 * t + 0.005589 * t * t;
+	}
+
+	function toTT(jdUT) {
+	  const date = dateFromJd(jdUT);
+
+	  const y0 = date.getUTCFullYear();
+	  const start = Date.UTC(y0, 0, 1);
+	  const end = Date.UTC(y0 + 1, 0, 1);
+
+	  const fraction = (date.getTime() - start) / (end - start);
+	  const decimalYear = y0 + fraction;
+
+	  return jdUT + deltaT(decimalYear) / 86400;
+	}
+
 
   function toUT(jdTT) {
     const y = dateFromJd(jdTT).getUTCFullYear();
