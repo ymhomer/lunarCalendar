@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>Lunar Calendar</title>
+
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --primary: #2563eb;
+    --text: #111827;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+  }
+
+  body {
+    margin: 0;
+    padding: 40px;
+    font-family: system-ui, -apple-system, "PingFang SC",
+                 "Microsoft YaHei", "Heiti TC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .app {
+    max-width: 720px;
+    margin: auto;
+    display: grid;
+    gap: 20px;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 32px rgba(0,0,0,.08);
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 22px;
+  }
+
+  select, input, button {
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  button {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+  }
+
+  button.secondary {
+    background: #6b7280;
+  }
+
+  button.ghost {
+    background: #eef2ff;
+    color: #1e3a8a;
+  }
+
+  .row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .result-main {
+    font-size: 26px;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .result-sub {
+    margin-top: 6px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 24px;
+    font-size: 14px;
+  }
+
+  .meta div {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 4px;
+  }
+
+  .label {
+    color: var(--muted);
+  }
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- Header Card -->
+  <div class="card header">
+    <h1 id="title"></h1>
+    <select id="lang" onchange="refresh()">
+      <option value="zh-CN">简体中文</option>
+      <option value="zh-TW">繁體中文</option>
+    </select>
+  </div>
+
+  <!-- Query Card -->
+  <div class="card">
+    <div class="row">
+      <input type="date" id="dateInput">
+      <button onclick="query()" id="btnQuery"></button>
+      <button class="secondary" onclick="today()" id="btnToday"></button>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="ghost" onclick="sameSolar()" id="btnSolar"></button>
+      <button class="ghost" onclick="sameLunar()" id="btnLunar"></button>
+    </div>
+  </div>
+
+  <!-- Result Card -->
+  <div class="card" id="resultCard" style="display:none">
+    <div class="result-main" id="display"></div>
+    <div class="result-sub" id="subtitle"></div>
+  </div>
+
+  <!-- Meta Card -->
+  <div class="card" id="metaCard" style="display:none">
+    <div class="meta">
+      <div><span class="label" id="lblSolar"></span><span id="solar"></span></div>
+      <div><span class="label" id="lblNumeric"></span><span id="numeric"></span></div>
+      <div><span class="label" id="lblLeap"></span><span id="leap"></span></div>
+      <div><span class="label" id="lblDays"></span><span id="days"></span></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="./lunar-astronomy.js"></script>
+<script src="./lunar-service.js"></script>
+
+<script>
+/* ===============================
+   页面 i18n 文案
+   =============================== */
+
+const TEXT = {
+  "zh-CN": {
+    title: "农历查询工具",
+    subtitle: "天文农历 · 立春干支",
+    query: "查询",
+    today: "今天",
+    sameSolar: "今年同日（公历）",
+    sameLunar: "今年同日（农历）",
+    solar: "公历",
+    numeric: "农历数值",
+    leap: "闰月",
+    days: "本月天数",
+    yes: "是",
+    no: "否"
+  },
+  "zh-TW": {
+    title: "農曆查詢工具",
+    subtitle: "天文農曆 · 立春干支",
+    query: "查詢",
+    today: "今天",
+    sameSolar: "今年同日（公曆）",
+    sameLunar: "今年同日（農曆）",
+    solar: "公曆",
+    numeric: "農曆數值",
+    leap: "閏月",
+    days: "本月天數",
+    yes: "是",
+    no: "否"
+  }
+};
+
+let lastDate = null;
+
+function lang() {
+  return document.getElementById("lang").value;
+}
+
+function applyText() {
+  const t = TEXT[lang()];
+  title.textContent = t.title;
+  subtitle.textContent = t.subtitle;
+  btnQuery.textContent = t.query;
+  btnToday.textContent = t.today;
+  btnSolar.textContent = t.sameSolar;
+  btnLunar.textContent = t.sameLunar;
+  lblSolar.textContent = t.solar;
+  lblNumeric.textContent = t.numeric;
+  lblLeap.textContent = t.leap;
+  lblDays.textContent = t.days;
+}
+
+function render(info) {
+  resultCard.style.display = "";
+  metaCard.style.display = "";
+
+  display.textContent = info.display;
+  solar.textContent = info.solar.text;
+  numeric.textContent =
+    `${info.lunar.year}-${info.lunar.month}-${info.lunar.day}`;
+  leap.textContent = info.lunar.isLeap ? TEXT[lang()].yes : TEXT[lang()].no;
+  days.textContent = info.lunar.monthDays + " 天";
+}
+
+function query() {
+  if (!dateInput.value) return;
+  lastDate = new Date(dateInput.value + "T00:00:00");
+  render(LunarService.fromDate(lastDate, { lang: lang() }));
+}
+
+function today() {
+  lastDate = new Date();
+  dateInput.value = lastDate.toISOString().slice(0,10);
+  render(LunarService.fromDate(lastDate, { lang: lang() }));
+}
+
+function sameSolar() {
+  if (!lastDate) return;
+  render(LunarService.sameSolarDateThisYear(lastDate, { lang: lang() }));
+}
+
+function sameLunar() {
+  if (!lastDate) return;
+  try {
+    render(LunarService.sameLunarDateThisYear(lastDate, { lang: lang() }));
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+function refresh() {
+  applyText();
+  if (lastDate) query();
+}
+
+applyText();
+today();
+</script>
+
+</body>
+</html>
