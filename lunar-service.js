@@ -1,12 +1,14 @@
 /******************************************************
- * Lunar Service Layer (Enhanced i18n)
+ * Lunar Service Layer
  * - Depends on: lunar-astronomy.js
  * - DO NOT use alone
- * - Handles:
- *   * Ganzhi year (LiChun based)
- *   * Human-readable lunar text
- *   * Business logic (same day this year)
- * - Supports: zh-CN / zh-TW
+ *
+ * Provides:
+ * 1. Ganzhi Year (LiChun based)        → ganzhiYear
+ * 2. Civil Lunar Year (Spring Festival) → civilYear
+ * 3. Astronomical Lunar Year (Winter Solstice) → astroYear
+ *
+ * Supports: zh-CN / zh-TW
  ******************************************************/
 
 (function (global) {
@@ -25,7 +27,7 @@
   const Astro = global.LunarAstronomy;
 
   /* ===============================
-     1. 语言资源
+     1. I18N Resources
      =============================== */
 
   const I18N = {
@@ -70,14 +72,11 @@
   };
 
   /* ===============================
-     2. 文本工具
+     2. Text Helpers
      =============================== */
 
-  function lunarDayName(day, lang) {
-    const nums = lang === "zh-TW"
-      ? "一二三四五六七八九十"
-      : "一二三四五六七八九十";
-
+  function lunarDayName(day) {
+    const nums = "一二三四五六七八九十";
     if (day <= 10) return "初" + nums[day - 1];
     if (day < 20) return "十" + nums[day - 11];
     if (day === 20) return "二十";
@@ -90,20 +89,16 @@
   }
 
   /* ===============================
-     3. 干支年（立春）
+     3. Ganzhi Year (LiChun Based)
      =============================== */
 
   function getGanzhiYear(date, lang) {
     const year = date.getFullYear();
 
-    // 使用天文引擎中的立春（若有）
-    const lichunJD = Astro._getLiChunJD
-      ? Astro._getLiChunJD(year)
-      : null;
-
-    const afterLichun = lichunJD
-      ? Astro._jdFromDate(date) >= lichunJD
-      : (date.getMonth() > 1 || (date.getMonth() === 1 && date.getDate() >= 4));
+    // fallback if no precise LiChun is provided
+    const afterLichun =
+      date.getMonth() > 1 ||
+      (date.getMonth() === 1 && date.getDate() >= 4);
 
     const gzYear = afterLichun ? year : year - 1;
     const index = (gzYear - 4) % 60;
@@ -118,7 +113,19 @@
   }
 
   /* ===============================
-     4. 核心接口
+     4. Civil Lunar Year (Spring Festival)
+     =============================== */
+
+  function getCivilLunarYear(lunar) {
+    // 冬月、腊月属于“下一民用农历年”
+    if (lunar.lMonth === 11 || lunar.lMonth === 12) {
+      return lunar.lYear + 1;
+    }
+    return lunar.lYear;
+  }
+
+  /* ===============================
+     5. Core API
      =============================== */
 
   function fromDate(date, options = {}) {
@@ -126,32 +133,43 @@
     if (!I18N[lang]) throw new Error("Unsupported language: " + lang);
 
     const lunar = Astro.solarToLunar(date);
-    const gz = getGanzhiYear(date, lang);
+    const ganzhi = getGanzhiYear(date, lang);
+    const civilYear = getCivilLunarYear(lunar);
 
     return {
       solar: {
         date,
         text: date.toISOString().slice(0, 10)
       },
+
       lunar: {
-        year: lunar.lYear,
+        // === YEAR DIMENSIONS ===
+        astroYear: lunar.lYear,   // 冬至纪年（天文）
+        civilYear: civilYear,     // 民用农历年（春节）
+        ganzhiYear: ganzhi.year,  // 干支年（立春）
+
+        // === MONTH / DAY ===
         month: lunar.lMonth,
         day: lunar.lDay,
         isLeap: lunar.isLeap,
         monthDays: lunar.monthDays,
-        dayName: lunarDayName(lunar.lDay, lang),
-        monthName: lunarMonthName(lunar.lMonth, lunar.isLeap, lang)
+
+        // === DISPLAY ===
+        monthName: lunarMonthName(lunar.lMonth, lunar.isLeap, lang),
+        dayName: lunarDayName(lunar.lDay)
       },
-      ganzhi: gz,
+
+      ganzhi,
+
       display:
-        `${gz.ganzhi}年（${gz.animal}） ` +
+        `${ganzhi.ganzhi}年（${ganzhi.animal}） ` +
         `${lunarMonthName(lunar.lMonth, lunar.isLeap, lang)} ` +
-        `${lunarDayName(lunar.lDay, lang)}`
+        `${lunarDayName(lunar.lDay)}`
     };
   }
 
   /* ===============================
-     5. 快捷业务接口
+     6. Business Shortcuts
      =============================== */
 
   function sameSolarDateThisYear(date, options) {
@@ -160,32 +178,13 @@
     return fromDate(d, options);
   }
 
-  function sameLunarDateThisYear(date, options) {
-    const lunar = Astro.solarToLunar(date);
-    const year = new Date().getFullYear();
-
-    if (!Astro.lunarToSolar) {
-      throw new Error("[LunarService] lunarToSolar not available.");
-    }
-
-    const solar = Astro.lunarToSolar(
-      year,
-      lunar.lMonth,
-      lunar.lDay,
-      lunar.isLeap
-    );
-
-    return fromDate(solar, options);
-  }
-
   /* ===============================
-     6. 暴露 API
+     7. Export
      =============================== */
 
   global.LunarService = {
     fromDate,
-    sameSolarDateThisYear,
-    sameLunarDateThisYear
+    sameSolarDateThisYear
   };
 
 })(window);
