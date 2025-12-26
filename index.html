@@ -26,7 +26,7 @@ body {
   overflow-x: hidden;
 }
 
-/* ===== Canvas ===== */
+/* ===== Canvas (梅花背景) ===== */
 #plumCanvas {
   position: fixed;
   inset: 0;
@@ -42,7 +42,7 @@ body {
   margin: auto;
   padding: 20px 16px 40px;
   display: grid;
-  gap: 20px;
+  gap: 18px;
 }
 
 .appbar {
@@ -76,13 +76,15 @@ select {
   box-shadow: 0 10px 30px rgba(0,0,0,.06);
 }
 
-/* ===== Actions ===== */
-.main-action {
-  display: grid;
-  gap: 12px;
+/* ===== Input Row ===== */
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
-input[type="date"] {
+.input-row input[type="date"] {
+  flex: 1;
   height: 48px;
   padding: 0 14px;
   font-size: 16px;
@@ -90,28 +92,43 @@ input[type="date"] {
   border: 1px solid var(--border);
 }
 
-button {
+.icon-btn {
+  width: 48px;
   height: 48px;
   border-radius: 14px;
   border: none;
-  font-size: 15px;
   cursor: pointer;
-}
-
-button.primary {
   background: linear-gradient(135deg, #2563eb, #1e40af);
-  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+.icon-btn svg {
+  width: 22px;
+  height: 22px;
+  stroke: white;
+}
+
+/* ===== Quick Actions ===== */
 .quick-actions {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
-button.secondary {
+.quick-actions button {
+  height: 44px;
+  border-radius: 14px;
+  border: none;
+  font-size: 14px;
   background: var(--primary-soft);
   color: #1e3a8a;
+
+  /* 防止溢出：宁可省略号，也不要跑出按钮 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ===== Result ===== */
@@ -135,7 +152,7 @@ button.secondary {
   color: var(--muted);
 }
 
-/* ===== Info List (Meta) ===== */
+/* ===== Info List ===== */
 .info-list {
   display: grid;
   gap: 10px;
@@ -157,17 +174,12 @@ button.secondary {
 .info-label {
   color: var(--muted);
 }
-
-@media (max-width: 480px) {
-  .quick-actions {
-    grid-template-columns: 1fr;
-  }
-}
 </style>
 </head>
 
 <body>
 
+<!-- ✅ 梅花背景保留 -->
 <canvas id="plumCanvas"></canvas>
 
 <div class="app">
@@ -183,24 +195,30 @@ button.secondary {
     </select>
   </div>
 
-  <div class="card main-action">
-    <input type="date" id="dateInput">
-    <button class="primary" onclick="query()" id="btnQuery"></button>
-    <div class="quick-actions">
-      <button class="secondary" onclick="today()" id="btnToday"></button>
-      <button class="secondary" onclick="sameSolar()" id="btnSolar"></button>
-      <button class="secondary" onclick="sameLunar()" id="btnLunar"></button>
+  <div class="card">
+    <div class="input-row">
+      <input type="date" id="dateInput">
+      <button class="icon-btn" onclick="query()" aria-label="查询">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="quick-actions" style="margin-top:12px">
+      <button onclick="today()" id="btnToday"></button>
+      <button onclick="sameSolar()" id="btnSolar"></button>
+      <button onclick="sameLunar()" id="btnLunar"></button>
     </div>
   </div>
 
-  <!-- ===== Result Card ===== -->
   <div class="card" id="resultCard" style="display:none">
     <div class="result-main" id="display"></div>
     <div class="result-sub" id="lunarText"></div>
     <div class="result-date" id="lunarNumeric"></div>
   </div>
 
-  <!-- ===== Meta Info ===== -->
   <div class="card" id="metaCard" style="display:none">
     <div class="info-list">
       <div class="info-row">
@@ -232,17 +250,17 @@ button.secondary {
 <script src="./lunar-service.js"></script>
 
 <script>
-/* ===== 梅花 Canvas ===== */
+/* ✅ 梅花 Canvas（补回并保持原效果） */
 const canvas = document.getElementById("plumCanvas");
 const ctx = canvas.getContext("2d");
 let W, H;
 
-function resize() {
+function resizeCanvas() {
   W = canvas.width = window.innerWidth;
   H = canvas.height = window.innerHeight;
 }
-window.addEventListener("resize", resize);
-resize();
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
 
 const blossoms = Array.from({ length: 28 }, () => ({
   x: Math.random() * W,
@@ -285,11 +303,15 @@ function drawPlum(b) {
 </script>
 
 <script>
+/* ✅ Enter 触发查询 */
+dateInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") query();
+});
+
 const TEXT = {
   "zh-CN": {
     title: "农历查询工具",
     subtitle: "天文农历 · 立春干支",
-    query: "查询",
     today: "今天",
     sameSolar: "今年同日（公历）",
     sameLunar: "今年同日（农历）",
@@ -299,12 +321,13 @@ const TEXT = {
     leap: "闰月",
     days: "本月天数",
     yes: "是",
-    no: "否"
+    no: "否",
+    lunarPrefix: "农历：",
+    lunarPrefixTW: "農曆："
   },
   "zh-TW": {
     title: "農曆查詢工具",
     subtitle: "天文農曆 · 立春干支",
-    query: "查詢",
     today: "今天",
     sameSolar: "今年同日（公曆）",
     sameLunar: "今年同日（農曆）",
@@ -314,7 +337,9 @@ const TEXT = {
     leap: "閏月",
     days: "本月天數",
     yes: "是",
-    no: "否"
+    no: "否",
+    lunarPrefix: "農曆：",
+    lunarPrefixTW: "農曆："
   }
 };
 
@@ -328,7 +353,6 @@ function applyText() {
   const t = TEXT[lang()];
   title.textContent = t.title;
   subtitle.textContent = t.subtitle;
-  btnQuery.textContent = t.query;
   btnToday.textContent = t.today;
   btnSolar.textContent = t.sameSolar;
   btnLunar.textContent = t.sameLunar;
@@ -343,14 +367,12 @@ function render(info) {
   resultCard.style.display = "";
   metaCard.style.display = "";
 
-  display.textContent =
-    `${info.ganzhi.ganzhi}年（${info.ganzhi.animal}）`;
+  display.textContent = `${info.ganzhi.ganzhi}年（${info.ganzhi.animal}）`;
+  lunarText.textContent = `${info.lunar.monthName} ${info.lunar.dayName}`;
 
-  lunarText.textContent =
-    `${info.lunar.monthName} ${info.lunar.dayName}`;
-
+  const prefix = (lang() === "zh-TW") ? "農曆：" : "农历：";
   lunarNumeric.textContent =
-    `农历：${info.lunar.civilYear}-${info.lunar.month}-${info.lunar.day}`;
+    `${prefix}${info.lunar.civilYear}-${info.lunar.month}-${info.lunar.day}`;
 
   solar.textContent = info.solar.text;
   civilYear.textContent = info.lunar.civilYear;
