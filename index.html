@@ -6,196 +6,185 @@
 <title>Lunar Calendar</title>
 
 <style>
-  :root {
-    --bg: #f4f6f9;
-    --card: #ffffff;
-    --primary: #2563eb;
-    --primary-soft: #eef2ff;
-    --text: #111827;
-    --muted: #6b7280;
-    --border: #e5e7eb;
-  }
+:root {
+  --bg: #f6f5f3;
+  --card: #ffffff;
+  --primary: #2563eb;
+  --primary-soft: #eef2ff;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+}
 
-  * {
-    box-sizing: border-box;
-  }
+* { box-sizing: border-box; }
 
-  body {
-    margin: 0;
-    font-family: system-ui, -apple-system, "PingFang SC",
-                 "Microsoft YaHei", "Heiti TC", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-  }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
 
-  .app {
-    max-width: 860px;
-    margin: auto;
-    padding: clamp(16px, 4vw, 40px);
-    display: grid;
-    gap: 20px;
-  }
+/* ===== Canvas ===== */
+#plumCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
 
-  .card {
-    background: var(--card);
-    border-radius: 18px;
-    padding: clamp(16px, 3vw, 28px);
-    box-shadow: 0 12px 36px rgba(0,0,0,.08);
-  }
+.app {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: auto;
+  padding: 20px 16px 40px;
+  display: grid;
+  gap: 20px;
+}
 
-  /* ===== Header ===== */
+/* ===== App Bar ===== */
+.appbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
+.appbar h1 {
+  margin: 0;
+  font-size: 20px;
+}
 
-  h1 {
-    margin: 0;
-    font-size: clamp(18px, 3vw, 22px);
-  }
+.subtitle {
+  font-size: 13px;
+  color: var(--muted);
+}
 
-  select {
-    padding: 8px 12px;
-    font-size: 14px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-  }
+select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: white;
+}
 
-  /* ===== Controls ===== */
+/* ===== Card ===== */
+.card {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.06);
+}
 
-  .controls {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 12px;
-  }
+/* ===== UI ===== */
+.main-action { display: grid; gap: 12px; }
 
-  .actions {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 12px;
-  }
+input[type="date"] {
+  height: 48px;
+  padding: 0 14px;
+  font-size: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
 
-  input[type="date"],
-  button {
-    height: 44px;
-    font-size: 15px;
-    border-radius: 12px;
-  }
+button {
+  height: 48px;
+  border-radius: 14px;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+}
 
-  input[type="date"] {
-    padding: 0 12px;
-    border: 1px solid var(--border);
-  }
+button.primary {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  color: white;
+}
 
-  button {
-    padding: 0 16px;
-    border: none;
-    cursor: pointer;
-    background: var(--primary);
-    color: white;
-  }
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
 
-  button.secondary {
-    background: #6b7280;
-  }
+button.secondary {
+  background: var(--primary-soft);
+  color: #1e3a8a;
+}
 
-  button.ghost {
-    background: var(--primary-soft);
-    color: #1e3a8a;
-  }
+/* ===== Result ===== */
+.result-main {
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+}
 
-  /* ===== Result ===== */
+.result-sub {
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+}
 
-  .result-main {
-    font-size: clamp(20px, 4vw, 26px);
-    font-weight: 600;
-    text-align: center;
-    line-height: 1.4;
-  }
+/* ===== Meta ===== */
+.meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
 
-  .result-sub {
-    text-align: center;
-    margin-top: 6px;
-    color: var(--muted);
-    font-size: 14px;
-  }
+.meta-item {
+  background: #f9fafb;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+}
 
-  /* ===== Meta Info ===== */
+.label { color: var(--muted); }
 
-  .meta {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 14px 24px;
-    margin-top: 12px;
-    font-size: 14px;
-  }
-
-  .meta div {
-    display: flex;
-    justify-content: space-between;
-    border-bottom: 1px dashed var(--border);
-    padding-bottom: 4px;
-  }
-
-  .label {
-    color: var(--muted);
-  }
-
-  /* ===== Mobile tweaks ===== */
-
-  @media (max-width: 480px) {
-    .controls {
-      grid-template-columns: 1fr;
-    }
-  }
+@media (max-width: 480px) {
+  .meta { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 
 <body>
 
+<canvas id="plumCanvas"></canvas>
+
 <div class="app">
 
-  <!-- Header -->
-  <div class="card header">
-    <h1 id="title"></h1>
+  <div class="appbar">
+    <div>
+      <h1 id="title"></h1>
+      <div class="subtitle" id="subtitle"></div>
+    </div>
     <select id="lang" onchange="refresh()">
-      <option value="zh-CN">简体中文</option>
-      <option value="zh-TW">繁體中文</option>
+      <option value="zh-CN">简体</option>
+      <option value="zh-TW">繁體</option>
     </select>
   </div>
 
-  <!-- Controls -->
-  <div class="card">
-    <div class="controls">
-      <input type="date" id="dateInput">
-      <button onclick="query()" id="btnQuery"></button>
-    </div>
-
-    <div class="actions">
+  <div class="card main-action">
+    <input type="date" id="dateInput">
+    <button class="primary" onclick="query()" id="btnQuery"></button>
+    <div class="quick-actions">
       <button class="secondary" onclick="today()" id="btnToday"></button>
-      <button class="ghost" onclick="sameSolar()" id="btnSolar"></button>
-      <button class="ghost" onclick="sameLunar()" id="btnLunar"></button>
+      <button class="secondary" onclick="sameSolar()" id="btnSolar"></button>
+      <button class="secondary" onclick="sameLunar()" id="btnLunar"></button>
     </div>
   </div>
 
-  <!-- Result -->
   <div class="card" id="resultCard" style="display:none">
     <div class="result-main" id="display"></div>
     <div class="result-sub" id="subtitle"></div>
   </div>
 
-  <!-- Meta -->
   <div class="card" id="metaCard" style="display:none">
     <div class="meta">
-      <div><span class="label" id="lblSolar"></span><span id="solar"></span></div>
-      <div><span class="label" id="lblNumeric"></span><span id="numeric"></span></div>
-      <div><span class="label" id="lblLeap"></span><span id="leap"></span></div>
-      <div><span class="label" id="lblDays"></span><span id="days"></span></div>
+      <div class="meta-item"><span class="label" id="lblSolar"></span><span id="solar"></span></div>
+      <div class="meta-item"><span class="label" id="lblNumeric"></span><span id="numeric"></span></div>
+      <div class="meta-item"><span class="label" id="lblLeap"></span><span id="leap"></span></div>
+      <div class="meta-item"><span class="label" id="lblDays"></span><span id="days"></span></div>
     </div>
   </div>
 
@@ -203,6 +192,68 @@
 
 <script src="./lunar-astronomy.js"></script>
 <script src="./lunar-service.js"></script>
+
+<!-- ===== 真·梅花 Canvas ===== -->
+<script>
+const canvas = document.getElementById("plumCanvas");
+const ctx = canvas.getContext("2d");
+let W, H;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+const blossoms = Array.from({ length: 28 }, () => createBlossom());
+
+function createBlossom() {
+  return {
+    x: Math.random() * W,
+    y: Math.random() * H,
+    size: 18 + Math.random() * 18,
+    phase: Math.random() * Math.PI * 2,
+    speed: 0.002 + Math.random() * 0.003,
+    color: Math.random() > 0.5
+      ? "rgba(220,38,38,"
+      : "rgba(244,114,182,"
+  };
+}
+
+function drawPlum(b) {
+  const alpha = 0.04 + Math.abs(Math.sin(b.phase)) * 0.12;
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  for (let i = 0; i < 5; i++) {
+    const angle = (i * Math.PI * 2) / 5;
+    ctx.beginPath();
+    ctx.arc(
+      Math.cos(angle) * b.size * 0.4,
+      Math.sin(angle) * b.size * 0.4,
+      b.size * 0.5,
+      0, Math.PI * 2
+    );
+    ctx.fillStyle = b.color + alpha + ")";
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.arc(0, 0, b.size * 0.25, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 200, 200," + alpha * 0.8 + ")";
+  ctx.fill();
+  ctx.restore();
+}
+
+function animate() {
+  ctx.clearRect(0, 0, W, H);
+  blossoms.forEach(b => {
+    b.phase += b.speed;
+    drawPlum(b);
+  });
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
 
 <script>
 const TEXT = {
